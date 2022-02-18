@@ -1,8 +1,9 @@
-import React, { memo, useState } from "react";
+import React, { memo, useState, useEffect } from "react";
+import dayjs from "dayjs";
 
 import Button from "@mui/material/Button";
 import IconButton from "@mui/material/IconButton";
-import ArrowBackIosIcon from "@mui/icons-material/ArrowBackIos";
+import ArrowBackIosNewIcon from "@mui/icons-material/ArrowBackIosNew";
 import ArrowForwardIosIcon from "@mui/icons-material/ArrowForwardIos";
 
 import Menu from "@mui/material/Menu";
@@ -14,74 +15,268 @@ import DialogTitle from "@mui/material/DialogTitle";
 import DialogContent from "@mui/material/DialogContent";
 import DialogActions from "@mui/material/DialogActions";
 
-const WEEK = Array.from(Array(7).keys());
-const MONTH = Array.from(Array(35).keys());
+import { blue } from "@mui/material/colors";
 
-function DateRangePicker() {
-  const [dialogOpen, setDialogOpen] = useState(false);
-  const [openMenu, setOpenMenu] = useState(false);
+import { DateRangePickerProps, MonthYear, Day } from "./types";
+
+const DIALOG_DEFAULT_STATE = false;
+const MONTH_LIST = Array.from({ length: 12 }, (_, i) => i);
+const YEAR_LIST = Array.from({ length: 10 }, (_, i) => i + 2017);
+const WEEK_LIST: Day[] = [
+  { id: "0", label: "日", value: "0" },
+  { id: "1", label: "一", value: "1" },
+  { id: "2", label: "二", value: "2" },
+  { id: "3", label: "三", value: "3" },
+  { id: "4", label: "四", value: "4" },
+  { id: "5", label: "五", value: "5" },
+  { id: "6", label: "六", value: "6" },
+];
+const CALENDER_BODY: Day[] = [{ id: "", label: "", value: "" }];
+const MONTH_YEAR_TODAY: MonthYear = {
+  year: dayjs().get("year"),
+  month: dayjs().get("month"),
+};
+
+enum NAVIGATION {
+  PREV = "PREV",
+  NEXT = "NEXT",
+}
+
+function DateRangePicker(props: DateRangePickerProps) {
+  /* States */
+  const { setDateRange } = props;
+  const [dialogOpen, setDialogOpen] = useState<boolean>(DIALOG_DEFAULT_STATE);
   const [anchorDialog, setAnchorDialog] = useState<null | HTMLElement>(null);
-  const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
+  const [anchorMonth, setAnchorMonth] = useState<null | HTMLElement>(null);
   const [anchorYear, setAnchorYear] = useState<null | HTMLElement>(null);
+  const [calendarBody, setCalendarBody] = useState<Day[]>(CALENDER_BODY);
+  const [selectedMonthYear, setSelectedMonthYear] =
+    useState<MonthYear>(MONTH_YEAR_TODAY);
+  const [selectedDateArr, setSelectedDateArr] = useState<string[]>([]);
+  const openMonth = Boolean(anchorMonth);
   const openYear = Boolean(anchorYear);
 
-  const handleDialogOpen = (event: React.MouseEvent<HTMLButtonElement>) => {
-    setAnchorDialog(event.currentTarget);
-    setDialogOpen(true);
-  };
-  const handleDialogClose = () => {
-    setDialogOpen(false);
-    setAnchorDialog(null);
-  };
+  /* Functions */
+  const handleDatePickerClick =
+    (toggle: boolean) => (event: React.MouseEvent<HTMLButtonElement>) => {
+      if (toggle) {
+        setAnchorDialog(event.currentTarget);
+        setDialogOpen(true);
+        return;
+      }
 
+      if (!toggle && selectedDateArr.length !== 2) return;
+
+      setDialogOpen(false);
+      setAnchorDialog(null);
+      // 輸出起始與終止日期
+      const date1 = dayjs(selectedDateArr[0]).valueOf();
+      const date2 = dayjs(selectedDateArr[1]).valueOf();
+      const start = date1 - date2 > 0 ? selectedDateArr[1] : selectedDateArr[0];
+      const end = date1 - date2 > 0 ? selectedDateArr[0] : selectedDateArr[1];
+      setDateRange({ start, end });
+      setSelectedDateArr([]);
+    };
   const handleMonthOpen = (event: React.MouseEvent<HTMLButtonElement>) => {
-    setAnchorEl(event.currentTarget);
-    setOpenMenu(true);
+    setAnchorMonth(event.currentTarget);
   };
-  const handleMonthClose = () => {
-    setOpenMenu(false);
-    setAnchorEl(null);
+  const handleMonthSelect = (month: number) => () => {
+    setSelectedMonthYear((prev) => ({ ...prev, month }));
+    setAnchorMonth(null);
   };
-
   const handleYearOpen = (event: React.MouseEvent<HTMLButtonElement>) => {
     setAnchorYear(event.currentTarget);
   };
-  const handleYearClose = () => {
+  const handleYearSelect = (year: number) => () => {
+    setSelectedMonthYear((prev) => ({ ...prev, year }));
     setAnchorYear(null);
   };
+  const handleMonthChange = (navigation: NAVIGATION) => () => {
+    switch (navigation) {
+      case NAVIGATION.PREV: {
+        const month = dayjs(
+          `${selectedMonthYear.year}-${selectedMonthYear.month + 1}-1`
+        )
+          .add(-1, "month")
+          .month();
+        const year = dayjs(
+          `${selectedMonthYear.year}-${selectedMonthYear.month + 1}-1`
+        )
+          .add(-1, "month")
+          .year();
+        setSelectedMonthYear({ year, month });
+        break;
+      }
+      case NAVIGATION.NEXT: {
+        const month = dayjs(
+          `${selectedMonthYear.year}-${selectedMonthYear.month + 1}-1`
+        )
+          .add(1, "month")
+          .month();
+        const year = dayjs(
+          `${selectedMonthYear.year}-${selectedMonthYear.month + 1}-1`
+        )
+          .add(1, "month")
+          .year();
+        setSelectedMonthYear({ year, month });
+        break;
+      }
+      default:
+        break;
+    }
+  };
+  const handleDateSelect = (day: string) => () => {
+    switch (selectedDateArr.length) {
+      case 0:
+      case 2:
+        setSelectedDateArr([day]);
+        break;
+      case 1:
+        setSelectedDateArr([...selectedDateArr, day]);
+        break;
+      default:
+        break;
+    }
+  };
+  const handleBtnBackGroundColor = (dateValue: string) => {
+    if (selectedDateArr.find((d) => d === dateValue)) return blue[200];
+    if (selectedDateArr.length === 2) {
+      const date1 = dayjs(selectedDateArr[0]).valueOf();
+      const date2 = dayjs(selectedDateArr[1]).valueOf();
+      const early = date1 - date2 > 0 ? date2 : date1;
+      const late = date1 - date2 > 0 ? date1 : date2;
+      if (
+        dayjs(dateValue).valueOf() - early > 0 &&
+        dayjs(dateValue).valueOf() - late < 0
+      )
+        return blue[50];
+    }
+    return "";
+  };
+  const handleToToday = () => {
+    setSelectedMonthYear(MONTH_YEAR_TODAY);
+  };
 
+  /* Hooks */
+  // 開啟月曆框時，產生月曆內容
+  useEffect(() => {
+    if (!dialogOpen) {
+      setSelectedMonthYear(MONTH_YEAR_TODAY);
+      return;
+    }
+    const todayYear = dayjs().get("year");
+    const todayMonth = dayjs().get("month"); // start with 0
+    const todayMonthStartDay = dayjs(`${todayYear}-${todayMonth + 1}-1`).get(
+      "day"
+    ); // 星期幾
+    const dayInMonth = dayjs().daysInMonth(); // 有幾天
+
+    const placeHolder = Array.from({ length: todayMonthStartDay }, (_, i) => ({
+      id: "placeHolder-" + i,
+      label: "",
+      value: "",
+    }));
+    const displayMonth = Array.from({ length: dayInMonth }, (_, i) => ({
+      id: i.toString(),
+      label: (i + 1).toString(),
+      value: dayjs(`${todayYear}-${todayMonth + 1}-${i + 1}`).format(
+        "YYYY-MM-DD"
+      ),
+    }));
+    setCalendarBody([...placeHolder, ...displayMonth]);
+  }, [dialogOpen]);
+  // 點選箭頭換月時，更新月曆內容
+  useEffect(() => {
+    const todayYear = selectedMonthYear.year;
+    const todayMonth = selectedMonthYear.month; // start with 0
+    const todayMonthStartDay = dayjs(`${todayYear}-${todayMonth + 1}-1`).get(
+      "day"
+    ); // 星期幾
+    const dayInMonth = dayjs(`${todayYear}-${todayMonth + 1}-1`).daysInMonth(); // 有幾天
+
+    const placeHolder = Array.from({ length: todayMonthStartDay }, (_, i) => ({
+      id: "placeHolder-" + i,
+      label: "",
+      value: "",
+    }));
+    const displayMonth = Array.from({ length: dayInMonth }, (_, i) => ({
+      id: i.toString(),
+      label: (i + 1).toString(),
+      value: dayjs(`${todayYear}-${todayMonth + 1}-${i + 1}`).format(
+        "YYYY-MM-DD"
+      ),
+    }));
+    setCalendarBody([...placeHolder, ...displayMonth]);
+  }, [selectedMonthYear]);
+
+  /* Main */
   return (
     <React.Fragment>
-      <Button onClick={handleDialogOpen}>Click to Open</Button>
-      <Menu
-        onClose={handleDialogClose}
-        open={dialogOpen}
-        anchorEl={anchorDialog}
+      <Button
+        variant="contained"
+        disableElevation
+        onClick={handleDatePickerClick(true)}
       >
-        <DialogTitle>
-          <Button onClick={handleMonthOpen}>Month</Button>
-          <Menu open={openMenu} anchorEl={anchorEl}>
-            <MenuItem onClick={handleMonthClose}>April</MenuItem>
-            <MenuItem onClick={handleMonthClose}>November</MenuItem>
-          </Menu>
-          <Button onClick={handleYearOpen}>Year</Button>
-          <Menu open={openYear} anchorEl={anchorYear}>
-            <MenuItem onClick={handleYearClose}>1914</MenuItem>
-            <MenuItem onClick={handleYearClose}>1989</MenuItem>
-          </Menu>
-
-          <IconButton aria-label="previous month" size="small">
-            <ArrowBackIosIcon fontSize="inherit" />
+        Select Date Range
+      </Button>
+      <Menu open={dialogOpen} anchorEl={anchorDialog}>
+        <DialogTitle sx={{ display: "flex", justifyContent: "space-between" }}>
+          <IconButton
+            aria-label="previous month"
+            size="small"
+            onClick={handleMonthChange(NAVIGATION.PREV)}
+            sx={{ width: "36px", height: "36px" }}
+          >
+            <ArrowBackIosNewIcon fontSize="inherit" />
           </IconButton>
-          <IconButton aria-label="next month" size="small">
+          <div>
+            <Button onClick={handleMonthOpen}>
+              {dayjs(
+                `${selectedMonthYear.year}-${selectedMonthYear.month + 1}-1`
+              ).format("M月")}
+            </Button>
+            <Menu
+              open={openMonth}
+              anchorEl={anchorMonth}
+              onClose={() => setAnchorMonth(null)}
+            >
+              {MONTH_LIST.map((m) => (
+                <MenuItem key={m} onClick={handleMonthSelect(m)}>
+                  {dayjs(`${selectedMonthYear.year}-${m + 1}-1`).format("M月")}
+                </MenuItem>
+              ))}
+            </Menu>
+            <Button onClick={handleYearOpen}>
+              {dayjs(
+                `${selectedMonthYear.year}-${selectedMonthYear.month + 1}-1`
+              ).format("YYYY年")}
+            </Button>
+            <Menu
+              open={openYear}
+              anchorEl={anchorYear}
+              onClose={() => setAnchorYear(null)}
+            >
+              {YEAR_LIST.map((y) => (
+                <MenuItem key={y} onClick={handleYearSelect(y)}>
+                  {y}
+                </MenuItem>
+              ))}
+            </Menu>
+          </div>
+          <IconButton
+            aria-label="next month"
+            size="small"
+            onClick={handleMonthChange(NAVIGATION.NEXT)}
+            sx={{ width: "36px", height: "36px" }}
+          >
             <ArrowForwardIosIcon fontSize="inherit" />
           </IconButton>
         </DialogTitle>
         <DialogContent>
           <Box display="grid" gridTemplateColumns="repeat(7, 1fr)" gap={2}>
-            {WEEK.map((w, i) => (
-              <Box gridColumn="span 1" key={i}>
-                <div>{w}</div>
+            {WEEK_LIST.map((w) => (
+              <Box gridColumn="span 1" key={w.id}>
+                <div>{w.label}</div>
               </Box>
             ))}
           </Box>
@@ -89,19 +284,36 @@ function DateRangePicker() {
             display="grid"
             gridTemplateColumns="repeat(7, 1fr)"
             gridTemplateRows="repeat(5, 1fr)"
-            gap={2}
             marginY={3}
           >
-            {MONTH.map((m, i) => (
-              <Box gridColumn="span 1" key={i}>
-                <div>{m + 1}</div>
+            {calendarBody.map((m) => (
+              <Box gridColumn="span 1" key={m.id}>
+                <Button
+                  onClick={handleDateSelect(m.value)}
+                  sx={{
+                    minWidth: "36px",
+                    borderRadius: "0",
+                    backgroundColor: handleBtnBackGroundColor(m.value),
+                  }}
+                  disableElevation
+                >
+                  {m.label}
+                </Button>
               </Box>
             ))}
           </Box>
         </DialogContent>
         <DialogActions>
-          <Button>Today</Button>
-          <Button onClick={handleDialogClose}>Close Dialog</Button>
+          <Button variant="outlined" onClick={handleToToday}>
+            Today
+          </Button>
+          <Button
+            onClick={handleDatePickerClick(false)}
+            variant="contained"
+            disableElevation
+          >
+            Confirm
+          </Button>
         </DialogActions>
       </Menu>
     </React.Fragment>
