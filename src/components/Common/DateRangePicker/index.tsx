@@ -15,9 +15,8 @@ import DialogTitle from "@mui/material/DialogTitle";
 import DialogContent from "@mui/material/DialogContent";
 import DialogActions from "@mui/material/DialogActions";
 
-import { blue } from "@mui/material/colors";
-
 import { DateRangePickerProps, MonthYear, Day } from "./types";
+import './style.css'
 
 const DIALOG_DEFAULT_STATE = false;
 const MONTH_LIST = Array.from({ length: 12 }, (_, i) => i);
@@ -92,40 +91,21 @@ function DateRangePicker(props: DateRangePickerProps) {
     setAnchorYear(null);
   };
   const handleMonthChange = (navigation: NAVIGATION) => () => {
-    switch (navigation) {
-      case NAVIGATION.PREV: {
-        const month = dayjs(
-          `${selectedMonthYear.year}-${selectedMonthYear.month + 1}-1`
-        )
-          .add(-1, "month")
-          .month();
-        const year = dayjs(
-          `${selectedMonthYear.year}-${selectedMonthYear.month + 1}-1`
-        )
-          .add(-1, "month")
-          .year();
-        setSelectedMonthYear({ year, month });
-        break;
-      }
-      case NAVIGATION.NEXT: {
-        const month = dayjs(
-          `${selectedMonthYear.year}-${selectedMonthYear.month + 1}-1`
-        )
-          .add(1, "month")
-          .month();
-        const year = dayjs(
-          `${selectedMonthYear.year}-${selectedMonthYear.month + 1}-1`
-        )
-          .add(1, "month")
-          .year();
-        setSelectedMonthYear({ year, month });
-        break;
-      }
-      default:
-        break;
-    }
+    const modification = navigation === NAVIGATION.PREV ? -1 : 1
+    const month = dayjs(
+      `${selectedMonthYear.year}-${selectedMonthYear.month + 1}-1`
+    )
+      .add(modification, "month")
+      .month();
+    const year = dayjs(
+      `${selectedMonthYear.year}-${selectedMonthYear.month + 1}-1`
+    )
+      .add(modification, "month")
+      .year();
+    setSelectedMonthYear({ year, month });
   };
   const handleDateSelect = (day: string) => () => {
+    if (!day.length) return;
     switch (selectedDateArr.length) {
       case 0:
       case 2:
@@ -139,7 +119,7 @@ function DateRangePicker(props: DateRangePickerProps) {
     }
   };
   const handleBtnBackGroundColor = (dateValue: string) => {
-    if (selectedDateArr.find((d) => d === dateValue)) return blue[200];
+    // if (selectedDateArr.find((d) => d === dateValue)) return blue[200];
     if (selectedDateArr.length === 2) {
       const date1 = dayjs(selectedDateArr[0]).valueOf();
       const date2 = dayjs(selectedDateArr[1]).valueOf();
@@ -149,10 +129,24 @@ function DateRangePicker(props: DateRangePickerProps) {
         dayjs(dateValue).valueOf() - early > 0 &&
         dayjs(dateValue).valueOf() - late < 0
       )
-        return blue[50];
+        return "lightpink";
     }
     return "";
   };
+  const handleDateBackground = (dateValue: string) => {
+    // 可用 clip-path 解決鋸齒問題，參考 https://codepen.io/Charlie7779/pen/abVYyPv
+    // TODO: 如何引用 mui theme 顏色到 css 樣式中？
+    // https://stackoverflow.com/questions/69449055/in-mui-how-do-i-use-theme-values-in-my-css
+    if (selectedDateArr.length < 2 && selectedDateArr.find((d) => d === dateValue)) return "selected";
+    if (selectedDateArr.length === 2) {
+      const date1 = dayjs(selectedDateArr[0]).valueOf();
+      const date2 = dayjs(selectedDateArr[1]).valueOf();
+      const early = date1 - date2 > 0 ? selectedDateArr[1] : selectedDateArr[0];
+      const late = date1 - date2 > 0 ? selectedDateArr[0] : selectedDateArr[1];
+      if (dateValue === early) return 'selected-start';
+      if (dateValue === late) return 'selected-end';
+    }
+  }
   const handleToToday = () => {
     setSelectedMonthYear(MONTH_YEAR_TODAY);
   };
@@ -164,8 +158,8 @@ function DateRangePicker(props: DateRangePickerProps) {
       setSelectedMonthYear(MONTH_YEAR_TODAY);
       return;
     }
-    const todayYear = dayjs().get("year");
-    const todayMonth = dayjs().get("month"); // start with 0
+    const todayYear = MONTH_YEAR_TODAY.year;
+    const todayMonth = MONTH_YEAR_TODAY.month; // start with 0
     const todayMonthStartDay = dayjs(`${todayYear}-${todayMonth + 1}-1`).get(
       "day"
     ); // 星期幾
@@ -290,6 +284,7 @@ function DateRangePicker(props: DateRangePickerProps) {
               <Box gridColumn="span 1" key={m.id}>
                 <Button
                   onClick={handleDateSelect(m.value)}
+                  className={handleDateBackground(m.value)}
                   sx={{
                     minWidth: "36px",
                     borderRadius: "0",

@@ -1,48 +1,40 @@
 .selected {
-  background-color: lightcoral !important;
-  position: relative;
+  background-image: radial-gradient(
+    lightcoral 0px,
+    lightcoral 70%,
+    transparent 70%,
+    transparent 100%
+  );
 }
 
-/* .started::before {
-  content: "";
-  position: absolute;
-  z-index: -1;
-  right: 0;
-  top: 0;
-  width: 100%;
-  height: 100%;
-  border-radius: 50%;
-  background-color: lightcoral !important;
-}
-.started::after {
-  content: "";
-  position: absolute;
-  z-index: -1;
-  right: 0;
-  top: 0;
-  width: 100%;
-  height: 100%;
-  background-image: linear-gradient(
-    to right,
-    transparent 0%,
-    transparent 50%,
-    lightpink 50%,
-    lightpink 100%
-  ) !important;
-} */
-
-.ended::before {
-  content: "";
-  position: absolute;
-  left: 0;
-  top: 0;
-  z-index: -1;
-  width: 50%;
-  height: 100%;
-  background-color: lightpink !important;
+.selected-start {
+  background-image: radial-gradient(
+      lightcoral 0px,
+      lightcoral 18px,
+      transparent 18px,
+      transparent 36px
+    ),
+    linear-gradient(
+      to right,
+      transparent 0%,
+      transparent 50%,
+      lightpink 50%,
+      lightpink 100%
+    ) !important;
 }
 
-.cover {
-  background-color: lightpink !important;
-  border-radius: 0 !important;
+.selected-end {
+  background-image: radial-gradient(
+      lightcoral 0px,
+      lightcoral 18px,
+      transparent 18px,
+      transparent 36px
+    ),
+    linear-gradient(
+      to right,
+      lightpink 0%,
+      lightpink 50%,
+      transparent 50%,
+      transparent 100%
+    ) !important;
 }
