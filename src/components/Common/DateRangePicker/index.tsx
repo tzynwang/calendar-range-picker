@@ -1,5 +1,6 @@
 import React, { memo, useState, useEffect } from "react";
 import dayjs from "dayjs";
+import Color from "color";
 
 import Button from "@mui/material/Button";
 import IconButton from "@mui/material/IconButton";
@@ -15,12 +16,16 @@ import DialogTitle from "@mui/material/DialogTitle";
 import DialogContent from "@mui/material/DialogContent";
 import DialogActions from "@mui/material/DialogActions";
 
+import { useTheme } from "@mui/material/styles";
+
 import { DateRangePickerProps, MonthYear, Day } from "./types";
-import './style.css'
 
 const DIALOG_DEFAULT_STATE = false;
 const MONTH_LIST = Array.from({ length: 12 }, (_, i) => i);
-const YEAR_LIST = Array.from({ length: 10 }, (_, i) => i + 2017);
+const YEAR_LIST = Array.from(
+  { length: 5 },
+  (_, i) => i + dayjs().get("year") - 2
+);
 const WEEK_LIST: Day[] = [
   { id: "0", label: "日", value: "0" },
   { id: "1", label: "一", value: "1" },
@@ -36,6 +41,36 @@ const MONTH_YEAR_TODAY: MonthYear = {
   month: dayjs().get("month"),
 };
 
+const colorLighten = (base: string, lighten: number) => {
+  return Color(base).lighten(lighten).hex();
+};
+
+const sortedArr = (arr: string[]) => {
+  const date1 = dayjs(arr[0]).valueOf();
+  const date2 = dayjs(arr[1]).valueOf();
+  const start = date1 - date2 > 0 ? arr[1] : arr[0];
+  const end = date1 - date2 > 0 ? arr[0] : arr[1];
+  return [start, end];
+};
+
+const formatCalendarBody = (year: number, month: number) => {
+  // 該月的1號是星期幾
+  const monthStartDay = dayjs(`${year}-${month + 1}-1`).get("day");
+  const dayInMonth = dayjs(`${year}-${month + 1}-1`).daysInMonth();
+
+  const placeHolder = Array.from({ length: monthStartDay }, (_, i) => ({
+    id: "placeHolder-" + i,
+    label: "",
+    value: "",
+  }));
+  const displayMonth = Array.from({ length: dayInMonth }, (_, i) => ({
+    id: i.toString(),
+    label: (i + 1).toString(),
+    value: dayjs(`${year}-${month + 1}-${i + 1}`).format("YYYY-MM-DD"),
+  }));
+  return [...placeHolder, ...displayMonth];
+};
+
 enum NAVIGATION {
   PREV = "PREV",
   NEXT = "NEXT",
@@ -44,6 +79,7 @@ enum NAVIGATION {
 function DateRangePicker(props: DateRangePickerProps) {
   /* States */
   const { setDateRange } = props;
+  const theme = useTheme();
   const [dialogOpen, setDialogOpen] = useState<boolean>(DIALOG_DEFAULT_STATE);
   const [anchorDialog, setAnchorDialog] = useState<null | HTMLElement>(null);
   const [anchorMonth, setAnchorMonth] = useState<null | HTMLElement>(null);
@@ -69,10 +105,7 @@ function DateRangePicker(props: DateRangePickerProps) {
       setDialogOpen(false);
       setAnchorDialog(null);
       // 輸出起始與終止日期
-      const date1 = dayjs(selectedDateArr[0]).valueOf();
-      const date2 = dayjs(selectedDateArr[1]).valueOf();
-      const start = date1 - date2 > 0 ? selectedDateArr[1] : selectedDateArr[0];
-      const end = date1 - date2 > 0 ? selectedDateArr[0] : selectedDateArr[1];
+      const [start, end] = sortedArr(selectedDateArr);
       setDateRange({ start, end });
       setSelectedDateArr([]);
     };
@@ -91,7 +124,7 @@ function DateRangePicker(props: DateRangePickerProps) {
     setAnchorYear(null);
   };
   const handleMonthChange = (navigation: NAVIGATION) => () => {
-    const modification = navigation === NAVIGATION.PREV ? -1 : 1
+    const modification = navigation === NAVIGATION.PREV ? -1 : 1;
     const month = dayjs(
       `${selectedMonthYear.year}-${selectedMonthYear.month + 1}-1`
     )
@@ -118,35 +151,113 @@ function DateRangePicker(props: DateRangePickerProps) {
         break;
     }
   };
-  const handleBtnBackGroundColor = (dateValue: string) => {
-    // if (selectedDateArr.find((d) => d === dateValue)) return blue[200];
+  const handleDateBgColor = (dateValue: string) => {
     if (selectedDateArr.length === 2) {
-      const date1 = dayjs(selectedDateArr[0]).valueOf();
-      const date2 = dayjs(selectedDateArr[1]).valueOf();
-      const early = date1 - date2 > 0 ? date2 : date1;
-      const late = date1 - date2 > 0 ? date1 : date2;
+      const [start, end] = sortedArr(selectedDateArr);
       if (
-        dayjs(dateValue).valueOf() - early > 0 &&
-        dayjs(dateValue).valueOf() - late < 0
+        dayjs(dateValue).valueOf() - dayjs(start).valueOf() > 0 &&
+        dayjs(dateValue).valueOf() - dayjs(end).valueOf() < 0
       )
-        return "lightpink";
+        return colorLighten(theme.palette.primary.main, 0.96);
     }
     return "";
   };
-  const handleDateBackground = (dateValue: string) => {
-    // 可用 clip-path 解決鋸齒問題，參考 https://codepen.io/Charlie7779/pen/abVYyPv
-    // TODO: 如何引用 mui theme 顏色到 css 樣式中？
-    // https://stackoverflow.com/questions/69449055/in-mui-how-do-i-use-theme-values-in-my-css
-    if (selectedDateArr.length < 2 && selectedDateArr.find((d) => d === dateValue)) return "selected";
+  const handleDateSx = (dateValue: string) => {
+    if (
+      selectedDateArr.length < 2 &&
+      selectedDateArr.find((d) => d === dateValue)
+    )
+      return {
+        clipPath: "circle(50%)",
+        background: colorLighten(theme.palette.primary.main, 0.8),
+        position: "relative",
+        zIndex: "1",
+      } as const;
     if (selectedDateArr.length === 2) {
-      const date1 = dayjs(selectedDateArr[0]).valueOf();
-      const date2 = dayjs(selectedDateArr[1]).valueOf();
-      const early = date1 - date2 > 0 ? selectedDateArr[1] : selectedDateArr[0];
-      const late = date1 - date2 > 0 ? selectedDateArr[0] : selectedDateArr[1];
-      if (dateValue === early) return 'selected-start';
-      if (dateValue === late) return 'selected-end';
+      const [start, end] = sortedArr(selectedDateArr);
+      if (dateValue === start)
+        return {
+          background: "none",
+          position: "relative",
+          zIndex: "1",
+          "&::before": {
+            content: '""',
+            position: "absolute",
+            top: "0",
+            right: "0",
+            width: "100%",
+            height: "100%",
+            background: colorLighten(theme.palette.primary.main, 0.8),
+            clipPath: "circle(50%)",
+            zIndex: "-1",
+          },
+          "&::after": {
+            content: '""',
+            position: "absolute",
+            top: "0",
+            right: "0",
+            width: "50%",
+            height: "100%",
+            background: colorLighten(theme.palette.primary.main, 0.96),
+            zIndex: "-2",
+          },
+        } as const;
+      if (dateValue === end)
+        return {
+          background: "none",
+          position: "relative",
+          zIndex: "1",
+          "&::before": {
+            content: '""',
+            position: "absolute",
+            top: "0",
+            right: "0",
+            width: "100%",
+            height: "100%",
+            background: colorLighten(theme.palette.primary.main, 0.8),
+            clipPath: "circle(50%)",
+            zIndex: "-1",
+          },
+          "&::after": {
+            content: '""',
+            position: "absolute",
+            top: "0",
+            left: "0",
+            width: "50%",
+            height: "100%",
+            background: colorLighten(theme.palette.primary.main, 0.96),
+            zIndex: "-2",
+          },
+        } as const;
     }
-  }
+  };
+  const handleTodaySx = (dateValue: string) => {
+    if (dateValue === dayjs().format("YYYY-MM-DD")) {
+      return {
+        position: "relative",
+        zIndex: "1",
+        "::before": {
+          content: '""',
+          position: "absolute",
+          top: "0",
+          right: "0",
+          width: "100%",
+          height: "100%",
+          boxSizing: "border-box",
+          borderRadius: "50%",
+          border: `1px solid ${theme.palette.primary.main}`,
+        },
+      } as const;
+    }
+  };
+  const handleStyleUnset = (dateValue: string) => {
+    if (dateValue.length) return;
+    return {
+      "&:hover": {
+        background: "unset",
+      } as const,
+    };
+  };
   const handleToToday = () => {
     setSelectedMonthYear(MONTH_YEAR_TODAY);
   };
@@ -158,49 +269,19 @@ function DateRangePicker(props: DateRangePickerProps) {
       setSelectedMonthYear(MONTH_YEAR_TODAY);
       return;
     }
-    const todayYear = MONTH_YEAR_TODAY.year;
-    const todayMonth = MONTH_YEAR_TODAY.month; // start with 0
-    const todayMonthStartDay = dayjs(`${todayYear}-${todayMonth + 1}-1`).get(
-      "day"
-    ); // 星期幾
-    const dayInMonth = dayjs().daysInMonth(); // 有幾天
-
-    const placeHolder = Array.from({ length: todayMonthStartDay }, (_, i) => ({
-      id: "placeHolder-" + i,
-      label: "",
-      value: "",
-    }));
-    const displayMonth = Array.from({ length: dayInMonth }, (_, i) => ({
-      id: i.toString(),
-      label: (i + 1).toString(),
-      value: dayjs(`${todayYear}-${todayMonth + 1}-${i + 1}`).format(
-        "YYYY-MM-DD"
-      ),
-    }));
-    setCalendarBody([...placeHolder, ...displayMonth]);
+    const calendarBody = formatCalendarBody(
+      MONTH_YEAR_TODAY.year,
+      MONTH_YEAR_TODAY.month
+    );
+    setCalendarBody(calendarBody);
   }, [dialogOpen]);
   // 點選箭頭換月時，更新月曆內容
   useEffect(() => {
-    const todayYear = selectedMonthYear.year;
-    const todayMonth = selectedMonthYear.month; // start with 0
-    const todayMonthStartDay = dayjs(`${todayYear}-${todayMonth + 1}-1`).get(
-      "day"
-    ); // 星期幾
-    const dayInMonth = dayjs(`${todayYear}-${todayMonth + 1}-1`).daysInMonth(); // 有幾天
-
-    const placeHolder = Array.from({ length: todayMonthStartDay }, (_, i) => ({
-      id: "placeHolder-" + i,
-      label: "",
-      value: "",
-    }));
-    const displayMonth = Array.from({ length: dayInMonth }, (_, i) => ({
-      id: i.toString(),
-      label: (i + 1).toString(),
-      value: dayjs(`${todayYear}-${todayMonth + 1}-${i + 1}`).format(
-        "YYYY-MM-DD"
-      ),
-    }));
-    setCalendarBody([...placeHolder, ...displayMonth]);
+    const calendarBody = formatCalendarBody(
+      selectedMonthYear.year,
+      selectedMonthYear.month
+    );
+    setCalendarBody(calendarBody);
   }, [selectedMonthYear]);
 
   /* Main */
@@ -284,11 +365,15 @@ function DateRangePicker(props: DateRangePickerProps) {
               <Box gridColumn="span 1" key={m.id}>
                 <Button
                   onClick={handleDateSelect(m.value)}
-                  className={handleDateBackground(m.value)}
                   sx={{
                     minWidth: "36px",
+                    width: "36px",
+                    height: "36px",
                     borderRadius: "0",
-                    backgroundColor: handleBtnBackGroundColor(m.value),
+                    background: handleDateBgColor(m.value),
+                    ...handleDateSx(m.value),
+                    ...handleTodaySx(m.value),
+                    ...handleStyleUnset(m.value),
                   }}
                   disableElevation
                 >
