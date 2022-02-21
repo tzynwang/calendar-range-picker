@@ -78,6 +78,7 @@ enum NAVIGATION {
 function DateRangePicker(props: DateRangePickerProps) {
   /* States */
   const { setDateRange } = props;
+  const { openBtnText, todayBtnText, confirmBtnText } = props;
   const theme = useTheme();
   const [dialogOpen, setDialogOpen] = useState<boolean>(DIALOG_DEFAULT_STATE);
   const [anchorDialog, setAnchorDialog] = useState<null | HTMLElement>(null);
@@ -116,6 +117,16 @@ function DateRangePicker(props: DateRangePickerProps) {
       },
     }),
     [theme.palette.primary.main]
+  );
+  const btnText = useMemo(
+    () => ({
+      open:
+        openBtnText && openBtnText.length ? openBtnText : "Select Date Range",
+      today: todayBtnText && todayBtnText.length ? todayBtnText : "Today",
+      confirm:
+        confirmBtnText && confirmBtnText.length ? confirmBtnText : "Confirm",
+    }),
+    [openBtnText, todayBtnText, confirmBtnText]
   );
 
   /* Functions */
@@ -274,7 +285,7 @@ function DateRangePicker(props: DateRangePickerProps) {
         disableElevation
         onClick={handleDatePickerClick(true)}
       >
-        Select Date Range
+        {btnText.open}
       </Button>
       <Menu open={dialogOpen} anchorEl={anchorDialog}>
         <DialogTitle sx={{ display: "flex", justifyContent: "space-between" }}>
@@ -367,14 +378,14 @@ function DateRangePicker(props: DateRangePickerProps) {
         </DialogContent>
         <DialogActions>
           <Button variant="outlined" onClick={handleToToday}>
-            Today
+            {btnText.today}
           </Button>
           <Button
             onClick={handleDatePickerClick(false)}
             variant="contained"
             disableElevation
           >
-            Confirm
+            {btnText.confirm}
           </Button>
         </DialogActions>
       </Menu>

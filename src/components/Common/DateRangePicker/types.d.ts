@@ -2,6 +2,9 @@ import { DateRange } from "@Components/App/types";
 
 export interface DateRangePickerProps {
   setDateRange: React.Dispatch<React.SetStateAction<DateRange>>;
+  openBtnText?: string;
+  todayBtnText?: string;
+  confirmBtnText?: string;
 }
 
 export interface MonthYear {
