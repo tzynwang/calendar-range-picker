@@ -1,6 +1,7 @@
-import React, { memo, useState, useEffect } from "react";
+import React, { memo, useState, useMemo, useEffect } from "react";
 import dayjs from "dayjs";
 import Color from "color";
+import { cloneDeep, merge } from "lodash";
 
 import Button from "@mui/material/Button";
 import IconButton from "@mui/material/IconButton";
@@ -19,6 +20,34 @@ import DialogActions from "@mui/material/DialogActions";
 import { useTheme } from "@mui/material/styles";
 
 import { DateRangePickerProps, MonthYear, Day } from "./types";
+
+const colorLighten = (base: string, lighten: number) => {
+  return Color(base).lighten(lighten).hex();
+};
+const sortedArr = (arr: string[]) => {
+  const date1 = dayjs(arr[0]).valueOf();
+  const date2 = dayjs(arr[1]).valueOf();
+  const start = date1 - date2 > 0 ? arr[1] : arr[0];
+  const end = date1 - date2 > 0 ? arr[0] : arr[1];
+  return [start, end];
+};
+const formatCalendarBody = (year: number, month: number) => {
+  // 該月的1號是星期幾
+  const monthStartDay = dayjs(`${year}-${month + 1}-1`).get("day");
+  const dayInMonth = dayjs(`${year}-${month + 1}-1`).daysInMonth();
+
+  const placeHolder = Array.from({ length: monthStartDay }, (_, i) => ({
+    id: "placeHolder-" + i,
+    label: "",
+    value: "",
+  }));
+  const displayMonth = Array.from({ length: dayInMonth }, (_, i) => ({
+    id: i.toString(),
+    label: (i + 1).toString(),
+    value: dayjs(`${year}-${month + 1}-${i + 1}`).format("YYYY-MM-DD"),
+  }));
+  return [...placeHolder, ...displayMonth];
+};
 
 const DIALOG_DEFAULT_STATE = false;
 const MONTH_LIST = Array.from({ length: 12 }, (_, i) => i);
@@ -41,36 +70,6 @@ const MONTH_YEAR_TODAY: MonthYear = {
   month: dayjs().get("month"),
 };
 
-const colorLighten = (base: string, lighten: number) => {
-  return Color(base).lighten(lighten).hex();
-};
-
-const sortedArr = (arr: string[]) => {
-  const date1 = dayjs(arr[0]).valueOf();
-  const date2 = dayjs(arr[1]).valueOf();
-  const start = date1 - date2 > 0 ? arr[1] : arr[0];
-  const end = date1 - date2 > 0 ? arr[0] : arr[1];
-  return [start, end];
-};
-
-const formatCalendarBody = (year: number, month: number) => {
-  // 該月的1號是星期幾
-  const monthStartDay = dayjs(`${year}-${month + 1}-1`).get("day");
-  const dayInMonth = dayjs(`${year}-${month + 1}-1`).daysInMonth();
-
-  const placeHolder = Array.from({ length: monthStartDay }, (_, i) => ({
-    id: "placeHolder-" + i,
-    label: "",
-    value: "",
-  }));
-  const displayMonth = Array.from({ length: dayInMonth }, (_, i) => ({
-    id: i.toString(),
-    label: (i + 1).toString(),
-    value: dayjs(`${year}-${month + 1}-${i + 1}`).format("YYYY-MM-DD"),
-  }));
-  return [...placeHolder, ...displayMonth];
-};
-
 enum NAVIGATION {
   PREV = "PREV",
   NEXT = "NEXT",
@@ -90,6 +89,34 @@ function DateRangePicker(props: DateRangePickerProps) {
   const [selectedDateArr, setSelectedDateArr] = useState<string[]>([]);
   const openMonth = Boolean(anchorMonth);
   const openYear = Boolean(anchorYear);
+  const pointStyle = useMemo(
+    () => ({
+      background: "none",
+      position: "relative",
+      zIndex: "1",
+      "&::before": {
+        content: '""',
+        position: "absolute",
+        top: "0",
+        right: "0",
+        width: "100%",
+        height: "100%",
+        background: colorLighten(theme.palette.primary.main, 0.8),
+        clipPath: "circle(50%)",
+        zIndex: "-1",
+      },
+      "&::after": {
+        content: '""',
+        position: "absolute",
+        top: "0",
+        width: "50%",
+        height: "100%",
+        background: colorLighten(theme.palette.primary.main, 0.96),
+        zIndex: "-2",
+      },
+    }),
+    [theme.palette.primary.main]
+  );
 
   /* Functions */
   const handleDatePickerClick =
@@ -163,6 +190,7 @@ function DateRangePicker(props: DateRangePickerProps) {
     return "";
   };
   const handleDateSx = (dateValue: string) => {
+    // 單選外觀
     if (
       selectedDateArr.length < 2 &&
       selectedDateArr.find((d) => d === dateValue)
@@ -173,62 +201,16 @@ function DateRangePicker(props: DateRangePickerProps) {
         position: "relative",
         zIndex: "1",
       } as const;
+    // 起終點外觀
     if (selectedDateArr.length === 2) {
+      const style = cloneDeep(pointStyle);
       const [start, end] = sortedArr(selectedDateArr);
-      if (dateValue === start)
-        return {
-          background: "none",
-          position: "relative",
-          zIndex: "1",
-          "&::before": {
-            content: '""',
-            position: "absolute",
-            top: "0",
-            right: "0",
-            width: "100%",
-            height: "100%",
-            background: colorLighten(theme.palette.primary.main, 0.8),
-            clipPath: "circle(50%)",
-            zIndex: "-1",
-          },
-          "&::after": {
-            content: '""',
-            position: "absolute",
-            top: "0",
-            right: "0",
-            width: "50%",
-            height: "100%",
-            background: colorLighten(theme.palette.primary.main, 0.96),
-            zIndex: "-2",
-          },
-        } as const;
-      if (dateValue === end)
-        return {
-          background: "none",
-          position: "relative",
-          zIndex: "1",
-          "&::before": {
-            content: '""',
-            position: "absolute",
-            top: "0",
-            right: "0",
-            width: "100%",
-            height: "100%",
-            background: colorLighten(theme.palette.primary.main, 0.8),
-            clipPath: "circle(50%)",
-            zIndex: "-1",
-          },
-          "&::after": {
-            content: '""',
-            position: "absolute",
-            top: "0",
-            left: "0",
-            width: "50%",
-            height: "100%",
-            background: colorLighten(theme.palette.primary.main, 0.96),
-            zIndex: "-2",
-          },
-        } as const;
+      if (dateValue === start) {
+        return { ...merge(style, { "&::after": { right: "0" } }) } as const;
+      }
+      if (dateValue === end) {
+        return { ...merge(style, { "&::after": { left: "0" } }) } as const;
+      }
     }
   };
   const handleTodaySx = (dateValue: string) => {
