@@ -17,9 +17,31 @@ import DialogTitle from "@mui/material/DialogTitle";
 import DialogContent from "@mui/material/DialogContent";
 import DialogActions from "@mui/material/DialogActions";
 
-import { useTheme } from "@mui/material/styles";
+import { Theme } from "@mui/material/styles";
 
-import { DateRangePickerProps, MonthYear, Day } from "./types";
+export interface DateRange {
+  start: string;
+  end: string;
+}
+
+interface DateRangePickerProps {
+  setDateRange: React.Dispatch<React.SetStateAction<DateRange>>;
+  theme: Theme;
+  openBtnText?: string;
+  todayBtnText?: string;
+  confirmBtnText?: string;
+}
+
+interface MonthYear {
+  month: number;
+  year: number;
+}
+
+interface Day {
+  id: string;
+  label: string;
+  value: string;
+}
 
 const colorLighten = (base: string, lighten: number) => {
   return Color(base).lighten(lighten).hex();
@@ -69,6 +91,10 @@ const MONTH_YEAR_TODAY: MonthYear = {
   year: dayjs().get("year"),
   month: dayjs().get("month"),
 };
+export const DATE_RANGE: DateRange = {
+  start: "",
+  end: "",
+};
 
 enum NAVIGATION {
   PREV = "PREV",
@@ -77,9 +103,8 @@ enum NAVIGATION {
 
 function DateRangePicker(props: DateRangePickerProps) {
   /* States */
-  const { setDateRange } = props;
+  const { setDateRange, theme } = props;
   const { openBtnText, todayBtnText, confirmBtnText } = props;
-  const theme = useTheme();
   const [dialogOpen, setDialogOpen] = useState<boolean>(DIALOG_DEFAULT_STATE);
   const [anchorDialog, setAnchorDialog] = useState<null | HTMLElement>(null);
   const [anchorMonth, setAnchorMonth] = useState<null | HTMLElement>(null);
@@ -102,7 +127,7 @@ function DateRangePicker(props: DateRangePickerProps) {
         right: "0",
         width: "100%",
         height: "100%",
-        background: colorLighten(theme.palette.primary.main, 0.8),
+        background: colorLighten(theme.palette.primary.light, 0.15),
         clipPath: "circle(50%)",
         zIndex: "-1",
       },
@@ -112,11 +137,11 @@ function DateRangePicker(props: DateRangePickerProps) {
         top: "0",
         width: "50%",
         height: "100%",
-        background: colorLighten(theme.palette.primary.main, 0.96),
+        background: colorLighten(theme.palette.primary.light, 0.3),
         zIndex: "-2",
       },
     }),
-    [theme.palette.primary.main]
+    [theme.palette.primary]
   );
   const btnText = useMemo(
     () => ({
@@ -138,13 +163,13 @@ function DateRangePicker(props: DateRangePickerProps) {
         return;
       }
 
-      if (!toggle && selectedDateArr.length !== 2) return;
-
       setDialogOpen(false);
       setAnchorDialog(null);
       // 輸出起始與終止日期
-      const [start, end] = sortedArr(selectedDateArr);
-      setDateRange({ start, end });
+      if (selectedDateArr.length === 2) {
+        const [start, end] = sortedArr(selectedDateArr);
+        setDateRange({ start, end });
+      }
       setSelectedDateArr([]);
     };
   const handleMonthOpen = (event: React.MouseEvent<HTMLButtonElement>) => {
@@ -196,7 +221,7 @@ function DateRangePicker(props: DateRangePickerProps) {
         dayjs(dateValue).valueOf() - dayjs(start).valueOf() > 0 &&
         dayjs(dateValue).valueOf() - dayjs(end).valueOf() < 0
       )
-        return colorLighten(theme.palette.primary.main, 0.96);
+        return colorLighten(theme.palette.primary.light, 0.3);
     }
     return "";
   };
@@ -205,42 +230,50 @@ function DateRangePicker(props: DateRangePickerProps) {
     if (
       selectedDateArr.length < 2 &&
       selectedDateArr.find((d) => d === dateValue)
-    )
-      return {
-        clipPath: "circle(50%)",
-        background: colorLighten(theme.palette.primary.main, 0.8),
-        position: "relative",
-        zIndex: "1",
-      } as const;
+    ) {
+      return dateValue === dayjs().format("YYYY-MM-DD")
+        ? {
+            clipPath: "circle(50%)",
+            background: colorLighten(theme.palette.primary.light, 0.15),
+            position: "relative",
+            zIndex: "1",
+            "::before": {
+              content: '""',
+              position: "absolute",
+              top: "0",
+              right: "0",
+              width: "100%",
+              height: "100%",
+              boxSizing: "border-box",
+              borderRadius: "50%",
+              border: `1px solid ${theme.palette.primary.main}`,
+            } as const,
+          }
+        : ({
+            clipPath: "circle(50%)",
+            background: colorLighten(theme.palette.primary.light, 0.15),
+            position: "relative",
+            zIndex: "1",
+          } as const);
+    }
     // 起終點外觀
     if (selectedDateArr.length === 2) {
-      const style = cloneDeep(pointStyle);
       const [start, end] = sortedArr(selectedDateArr);
+      if (dateValue === start && start === end) {
+        return {
+          ...merge(cloneDeep(pointStyle), { "&::after": { all: "unset" } }),
+        } as const;
+      }
       if (dateValue === start) {
-        return { ...merge(style, { "&::after": { right: "0" } }) } as const;
+        return {
+          ...merge(cloneDeep(pointStyle), { "&::after": { right: "0" } }),
+        } as const;
       }
       if (dateValue === end) {
-        return { ...merge(style, { "&::after": { left: "0" } }) } as const;
+        return {
+          ...merge(cloneDeep(pointStyle), { "&::after": { left: "0" } }),
+        } as const;
       }
-    }
-  };
-  const handleTodaySx = (dateValue: string) => {
-    if (dateValue === dayjs().format("YYYY-MM-DD")) {
-      return {
-        position: "relative",
-        zIndex: "1",
-        "::before": {
-          content: '""',
-          position: "absolute",
-          top: "0",
-          right: "0",
-          width: "100%",
-          height: "100%",
-          boxSizing: "border-box",
-          borderRadius: "50%",
-          border: `1px solid ${theme.palette.primary.main}`,
-        },
-      } as const;
     }
   };
   const handleStyleUnset = (dateValue: string) => {
@@ -287,13 +320,21 @@ function DateRangePicker(props: DateRangePickerProps) {
       >
         {btnText.open}
       </Button>
-      <Menu open={dialogOpen} anchorEl={anchorDialog}>
+      <Menu
+        open={dialogOpen}
+        anchorEl={anchorDialog}
+        onClose={handleDatePickerClick(false)}
+      >
         <DialogTitle sx={{ display: "flex", justifyContent: "space-between" }}>
           <IconButton
             aria-label="previous month"
             size="small"
             onClick={handleMonthChange(NAVIGATION.PREV)}
-            sx={{ width: "36px", height: "36px" }}
+            sx={{
+              width: "36px",
+              height: "36px",
+              color: theme.palette.primary.dark,
+            }}
           >
             <ArrowBackIosNewIcon fontSize="inherit" />
           </IconButton>
@@ -335,7 +376,11 @@ function DateRangePicker(props: DateRangePickerProps) {
             aria-label="next month"
             size="small"
             onClick={handleMonthChange(NAVIGATION.NEXT)}
-            sx={{ width: "36px", height: "36px" }}
+            sx={{
+              width: "36px",
+              height: "36px",
+              color: theme.palette.primary.dark,
+            }}
           >
             <ArrowForwardIosIcon fontSize="inherit" />
           </IconButton>
@@ -363,9 +408,9 @@ function DateRangePicker(props: DateRangePickerProps) {
                     width: "36px",
                     height: "36px",
                     borderRadius: "0",
+                    color: theme.palette.primary.dark,
                     background: handleDateBgColor(m.value),
                     ...handleDateSx(m.value),
-                    ...handleTodaySx(m.value),
                     ...handleStyleUnset(m.value),
                   }}
                   disableElevation

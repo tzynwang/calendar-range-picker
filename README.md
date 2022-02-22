@@ -1,74 +1,73 @@
-# Introduction
+# mui-calendar-picker
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app), with template `choffee`.
+```string
+npm i mui-calendar-picker
+```
 
-Install the following packages by default:
-- `typescript`
-- (dev) `webpack`
+A mui-styled calendar date range picker, being able to inherit the style settings from `ThemeProvider`.\
+Demo site: https://tzynwang.github.io/mui-calendar-picker/
 
-## Available Scripts
+## Example
 
-In the project directory, you can run:
-
-### `npm run dev`
-
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in the browser.
-
-The page will reload if you make edits.\
-You will also see any lint errors in the console.
-
-### `npm run deploy`
-
-Deploy the app to the repository as GitHub Pages.
-
-## Components Import Path
-
-Use `@Components/path/to/the/component` to import any component from anywhere.\
-
-```ts
+```tsx
 // src/index.tsx
-import App from '@Components/App'
-import ErrorBoundary from '@Components/Common/ErrorBoundary'
+import React from "react";
+import ReactDOM from "react-dom";
+import { createTheme, ThemeProvider } from "@mui/material/styles";
+
+import App from "@Components/App";
+
+const THEME = createTheme({
+  palette: {
+    primary: {
+      main: "Lavender",
+    },
+  },
+});
+
+ReactDOM.render(
+  <React.StrictMode>
+    <ThemeProvider theme={THEME}>
+      <App />
+    </ThemeProvider>
+  </React.StrictMode>,
+  document.getElementById("root")
+);
 ```
 
-## Folder Structure
+```tsx
+// src/components/App/index.tsx
+import React, { memo, useState } from "react";
+import dayjs from "dayjs";
+import { Box, Typography } from "@mui/material";
+import { useTheme } from "@mui/material/styles";
 
-```
-config/
-  jest/
-  webpack/
-  alias.js
-  env.js
-  getHttpsConfig.js
-  modules.js
-  path.js
-  webpack.config.js
-  webpackDevServer.config.js
-public/
-  index.html
-  robots.txt
-scripts/
-  build.js
-  start.js
-  test.js
-src/
-  components/
-    App/
-      index.tsx
-    Common/
-      ErrorBoundary/
-        index.tsx
-        types.d.ts
-    Layout/
-  index.css
-  index.tsx
-  react-app.env.d.ts
-  reportWebVitals.ts
-.gitignore
-package.json
-README.md
-tsconfig.json
+import { CalendarPicker, DATE_RANGE, DateRange } from "mui-calendar-picker";
+
+function App(): React.ReactElement {
+  const [dateRange, setDateRange] = useState<DateRange>(DATE_RANGE);
+  const theme = useTheme(); // access parent's theme settings
+
+  return (
+    <Box>
+      <CalendarPicker
+        setDateRange={setDateRange}
+        theme={theme}
+        openBtnText={"Select Date Range"}   // optional
+        todayBtnText={"Back to Today"}      // optional
+        confirmBtnText={"Submit"}           // optional
+      />
+      <Typography>
+        Start at: {dayjs(dateRange.start).format("YYYY-MM-DD")}
+      </Typography>
+      <Typography>
+        End at: {dayjs(dateRange.end).format("YYYY-MM-DD")}
+      </Typography>
+    </Box>
+  );
+}
+
+export default memo(App);
 ```
 
 ## Author
