@@ -19,7 +19,7 @@ import DialogActions from "@mui/material/DialogActions";
 
 import { Theme } from "@mui/material/styles";
 
-interface DateRange {
+export interface DateRange {
   start: string;
   end: string;
 }
@@ -163,18 +163,13 @@ function DateRangePicker(props: DateRangePickerProps) {
         return;
       }
 
-      if (!toggle && selectedDateArr.length !== 2) {
-        setDialogOpen(false);
-        setAnchorDialog(null);
-        setSelectedDateArr([]);
-        return;
-      };
-
       setDialogOpen(false);
       setAnchorDialog(null);
       // 輸出起始與終止日期
-      const [start, end] = sortedArr(selectedDateArr);
-      setDateRange({ start, end });
+      if (selectedDateArr.length === 2) {
+        const [start, end] = sortedArr(selectedDateArr);
+        setDateRange({ start, end });
+      }
       setSelectedDateArr([]);
     };
   const handleMonthOpen = (event: React.MouseEvent<HTMLButtonElement>) => {
@@ -235,41 +230,50 @@ function DateRangePicker(props: DateRangePickerProps) {
     if (
       selectedDateArr.length < 2 &&
       selectedDateArr.find((d) => d === dateValue)
-    )
-      return {
-        clipPath: "circle(50%)",
-        background: colorLighten(theme.palette.primary.light, 0.15),
-        position: "relative",
-        zIndex: "1",
-      } as const;
+    ) {
+      return dateValue === dayjs().format("YYYY-MM-DD")
+        ? {
+            clipPath: "circle(50%)",
+            background: colorLighten(theme.palette.primary.light, 0.15),
+            position: "relative",
+            zIndex: "1",
+            "::before": {
+              content: '""',
+              position: "absolute",
+              top: "0",
+              right: "0",
+              width: "100%",
+              height: "100%",
+              boxSizing: "border-box",
+              borderRadius: "50%",
+              border: `1px solid ${theme.palette.primary.main}`,
+            } as const,
+          }
+        : ({
+            clipPath: "circle(50%)",
+            background: colorLighten(theme.palette.primary.light, 0.15),
+            position: "relative",
+            zIndex: "1",
+          } as const);
+    }
     // 起終點外觀
     if (selectedDateArr.length === 2) {
       const [start, end] = sortedArr(selectedDateArr);
+      if (dateValue === start && start === end) {
+        return {
+          ...merge(cloneDeep(pointStyle), { "&::after": { all: "unset" } }),
+        } as const;
+      }
       if (dateValue === start) {
-        return { ...merge(cloneDeep(pointStyle), { "&::after": { right: "0" } }) } as const;
+        return {
+          ...merge(cloneDeep(pointStyle), { "&::after": { right: "0" } }),
+        } as const;
       }
       if (dateValue === end) {
-        return { ...merge(cloneDeep(pointStyle), { "&::after": { left: "0" } }) } as const;
+        return {
+          ...merge(cloneDeep(pointStyle), { "&::after": { left: "0" } }),
+        } as const;
       }
-    }
-  };
-  const handleTodaySx = (dateValue: string) => {
-    if (dateValue === dayjs().format("YYYY-MM-DD")) {
-      return {
-        position: "relative",
-        zIndex: "1",
-        "::before": {
-          content: '""',
-          position: "absolute",
-          top: "0",
-          right: "0",
-          width: "100%",
-          height: "100%",
-          boxSizing: "border-box",
-          borderRadius: "50%",
-          border: `1px solid ${theme.palette.primary.main}`,
-        },
-      } as const;
     }
   };
   const handleStyleUnset = (dateValue: string) => {
@@ -316,7 +320,11 @@ function DateRangePicker(props: DateRangePickerProps) {
       >
         {btnText.open}
       </Button>
-      <Menu open={dialogOpen} anchorEl={anchorDialog}>
+      <Menu
+        open={dialogOpen}
+        anchorEl={anchorDialog}
+        onClose={handleDatePickerClick(false)}
+      >
         <DialogTitle sx={{ display: "flex", justifyContent: "space-between" }}>
           <IconButton
             aria-label="previous month"
@@ -403,7 +411,6 @@ function DateRangePicker(props: DateRangePickerProps) {
                     color: theme.palette.primary.dark,
                     background: handleDateBgColor(m.value),
                     ...handleDateSx(m.value),
-                    ...handleTodaySx(m.value),
                     ...handleStyleUnset(m.value),
                   }}
                   disableElevation
