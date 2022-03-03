@@ -20,7 +20,7 @@ import App from "@Components/App";
 const THEME = createTheme({
   palette: {
     primary: {
-      main: "Lavender",
+      main: "#5557d7",
     },
   },
 });
