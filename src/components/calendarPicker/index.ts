@@ -1,1 +1,2 @@
-export { default, DATE_RANGE, DateRange } from "./calendarPicker";
+export { default, DATE_RANGE } from "./calendarPicker";
+export type { DateRange } from "./calendarPicker";

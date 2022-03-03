@@ -19,6 +19,8 @@ import DialogActions from "@mui/material/DialogActions";
 
 import { Theme } from "@mui/material/styles";
 
+import I18n from "@Tools/i18n";
+
 export interface DateRange {
   start: string;
   end: string;
@@ -27,6 +29,7 @@ export interface DateRange {
 interface DateRangePickerProps {
   setDateRange: React.Dispatch<React.SetStateAction<DateRange>>;
   theme: Theme;
+  locale?: "en" | "zh";
   openBtnText?: string;
   todayBtnText?: string;
   confirmBtnText?: string;
@@ -40,6 +43,19 @@ interface MonthYear {
 interface Day {
   id: string;
   label: string;
+  value: string;
+}
+
+interface Weekday {
+  id: string;
+  label:
+    | "week.sunday"
+    | "week.monday"
+    | "week.tuesday"
+    | "week.wednesday"
+    | "week.thursday"
+    | "week.friday"
+    | "week.saturday";
   value: string;
 }
 
@@ -77,14 +93,14 @@ const YEAR_LIST = Array.from(
   { length: 5 },
   (_, i) => i + dayjs().get("year") - 2
 );
-const WEEK_LIST: Day[] = [
-  { id: "0", label: "日", value: "0" },
-  { id: "1", label: "一", value: "1" },
-  { id: "2", label: "二", value: "2" },
-  { id: "3", label: "三", value: "3" },
-  { id: "4", label: "四", value: "4" },
-  { id: "5", label: "五", value: "5" },
-  { id: "6", label: "六", value: "6" },
+const WEEK_LIST: Weekday[] = [
+  { id: "0", label: "week.sunday", value: "0" },
+  { id: "1", label: "week.monday", value: "1" },
+  { id: "2", label: "week.tuesday", value: "2" },
+  { id: "3", label: "week.wednesday", value: "3" },
+  { id: "4", label: "week.thursday", value: "4" },
+  { id: "5", label: "week.friday", value: "5" },
+  { id: "6", label: "week.saturday", value: "6" },
 ];
 const CALENDER_BODY: Day[] = [{ id: "", label: "", value: "" }];
 const MONTH_YEAR_TODAY: MonthYear = {
@@ -103,7 +119,7 @@ enum NAVIGATION {
 
 function DateRangePicker(props: DateRangePickerProps) {
   /* States */
-  const { setDateRange, theme } = props;
+  const { setDateRange, theme, locale } = props;
   const { openBtnText, todayBtnText, confirmBtnText } = props;
   const [dialogOpen, setDialogOpen] = useState<boolean>(DIALOG_DEFAULT_STATE);
   const [anchorDialog, setAnchorDialog] = useState<null | HTMLElement>(null);
@@ -153,6 +169,7 @@ function DateRangePicker(props: DateRangePickerProps) {
     }),
     [openBtnText, todayBtnText, confirmBtnText]
   );
+  const i18n = useMemo(() => new I18n(locale), [locale]);
 
   /* Functions */
   const handleDatePickerClick =
@@ -231,30 +248,12 @@ function DateRangePicker(props: DateRangePickerProps) {
       selectedDateArr.length < 2 &&
       selectedDateArr.find((d) => d === dateValue)
     ) {
-      return dateValue === dayjs().format("YYYY-MM-DD")
-        ? {
-            clipPath: "circle(50%)",
-            background: colorLighten(theme.palette.primary.light, 0.15),
-            position: "relative",
-            zIndex: "1",
-            "::before": {
-              content: '""',
-              position: "absolute",
-              top: "0",
-              right: "0",
-              width: "100%",
-              height: "100%",
-              boxSizing: "border-box",
-              borderRadius: "50%",
-              border: `1px solid ${theme.palette.primary.main}`,
-            } as const,
-          }
-        : ({
-            clipPath: "circle(50%)",
-            background: colorLighten(theme.palette.primary.light, 0.15),
-            position: "relative",
-            zIndex: "1",
-          } as const);
+      return {
+        clipPath: "circle(50%)",
+        background: colorLighten(theme.palette.primary.light, 0.15),
+        position: "relative",
+        zIndex: "1",
+      } as const;
     }
     // 起終點外觀
     if (selectedDateArr.length === 2) {
@@ -274,6 +273,23 @@ function DateRangePicker(props: DateRangePickerProps) {
           ...merge(cloneDeep(pointStyle), { "&::after": { left: "0" } }),
         } as const;
       }
+    }
+  };
+  const handleTodaySx = (dateValue: string) => {
+    if (dateValue === dayjs().format("YYYY-MM-DD")) {
+      return {
+        "::before": {
+          content: '""',
+          position: "absolute",
+          top: "0",
+          right: "0",
+          width: "100%",
+          height: "100%",
+          boxSizing: "border-box",
+          borderRadius: "50%",
+          border: `1px solid ${theme.palette.primary.main}`,
+        },
+      } as const;
     }
   };
   const handleStyleUnset = (dateValue: string) => {
@@ -342,7 +358,7 @@ function DateRangePicker(props: DateRangePickerProps) {
             <Button onClick={handleMonthOpen}>
               {dayjs(
                 `${selectedMonthYear.year}-${selectedMonthYear.month + 1}-1`
-              ).format("M月")}
+              ).format(i18n.t("format.month"))}
             </Button>
             <Menu
               open={openMonth}
@@ -351,14 +367,16 @@ function DateRangePicker(props: DateRangePickerProps) {
             >
               {MONTH_LIST.map((m) => (
                 <MenuItem key={m} onClick={handleMonthSelect(m)}>
-                  {dayjs(`${selectedMonthYear.year}-${m + 1}-1`).format("M月")}
+                  {dayjs(`${selectedMonthYear.year}-${m + 1}-1`).format(
+                    i18n.t("format.month")
+                  )}
                 </MenuItem>
               ))}
             </Menu>
             <Button onClick={handleYearOpen}>
               {dayjs(
                 `${selectedMonthYear.year}-${selectedMonthYear.month + 1}-1`
-              ).format("YYYY年")}
+              ).format(i18n.t("format.year"))}
             </Button>
             <Menu
               open={openYear}
@@ -389,7 +407,7 @@ function DateRangePicker(props: DateRangePickerProps) {
           <Box display="grid" gridTemplateColumns="repeat(7, 1fr)" gap={2}>
             {WEEK_LIST.map((w) => (
               <Box gridColumn="span 1" key={w.id}>
-                <div>{w.label}</div>
+                <div>{i18n.t(w.label)}</div>
               </Box>
             ))}
           </Box>
@@ -412,6 +430,7 @@ function DateRangePicker(props: DateRangePickerProps) {
                     background: handleDateBgColor(m.value),
                     ...handleDateSx(m.value),
                     ...handleStyleUnset(m.value),
+                    ...handleTodaySx(m.value),
                   }}
                   disableElevation
                 >
