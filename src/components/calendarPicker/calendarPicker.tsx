@@ -19,7 +19,7 @@ import DialogActions from "@mui/material/DialogActions";
 
 import { Theme } from "@mui/material/styles";
 
-import { I18n } from "./../../tools";
+import I18n from "@Tools/i18n";
 
 export interface DateRange {
   start: string;
@@ -367,7 +367,9 @@ function DateRangePicker(props: DateRangePickerProps) {
             >
               {MONTH_LIST.map((m) => (
                 <MenuItem key={m} onClick={handleMonthSelect(m)}>
-                  {dayjs(`${selectedMonthYear.year}-${m + 1}-1`).format(i18n.t("format.month"))}
+                  {dayjs(`${selectedMonthYear.year}-${m + 1}-1`).format(
+                    i18n.t("format.month")
+                  )}
                 </MenuItem>
               ))}
             </Menu>
